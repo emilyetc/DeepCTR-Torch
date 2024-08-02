@@ -19,16 +19,11 @@ from sklearn.metrics import *
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-try:
-    from tensorflow.python.keras.callbacks import CallbackList
-except ImportError:
-    from tensorflow.python.keras._impl.keras.callbacks import CallbackList
 
 from ..inputs import build_input_features, SparseFeat, DenseFeat, VarLenSparseFeat, get_varlen_pooling_list, \
     create_embedding_matrix, varlen_embedding_lookup
 from ..layers import PredictionLayer
 from ..layers.utils import slice_arrays
-from ..callbacks import History
 
 
 class Linear(nn.Module):
@@ -132,7 +127,6 @@ class BaseModel(nn.Module):
         # parameters for callbacks
         self._is_graph_network = True  # used for ModelCheckpoint in tf2
         self._ckpt_saved_epoch = False  # used for EarlyStopping in tf1.14
-        self.history = History()
 
     def fit(self, x=None, y=None, batch_size=None, epochs=1, verbose=1, initial_epoch=0, validation_split=0.,
             validation_data=None, shuffle=True, callbacks=None):
@@ -216,21 +210,10 @@ class BaseModel(nn.Module):
         sample_num = len(train_tensor_data)
         steps_per_epoch = (sample_num - 1) // batch_size + 1
 
-        # configure callbacks
-        callbacks = (callbacks or []) + [self.history]  # add history callback
-        callbacks = CallbackList(callbacks)
-        callbacks.set_model(self)
-        callbacks.on_train_begin()
-        callbacks.set_model(self)
-        if not hasattr(callbacks, 'model'):  # for tf1.4
-            callbacks.__setattr__('model', self)
-        callbacks.model.stop_training = False
-
         # Train
         print("Train on {0} samples, validate on {1} samples, {2} steps per epoch".format(
             len(train_tensor_data), len(val_y), steps_per_epoch))
         for epoch in range(initial_epoch, epochs):
-            callbacks.on_epoch_begin(epoch)
             epoch_logs = {}
             start_time = time.time()
             loss_epoch = 0
@@ -300,13 +283,9 @@ class BaseModel(nn.Module):
                         eval_str += " - " + "val_" + name + \
                                     ": {0: .4f}".format(epoch_logs["val_" + name])
                 print(eval_str)
-            callbacks.on_epoch_end(epoch, epoch_logs)
             if self.stop_training:
                 break
 
-        callbacks.on_train_end()
-
-        return self.history
 
     def evaluate(self, x, y, batch_size=256):
         """
