@@ -53,16 +53,16 @@ class ModelCheckpoint:
                         if self.verbose > 0:
                             print('Epoch {:05d}: {} improved from {:.5f} to {:.5f}, saving model to {}'.format(epoch + 1, self.monitor, self.best, current, filepath))
                         self.best = current
-                        self._save_model(epoch, filepath)
+                        self._save_model(filepath)
                     else:
                         if self.verbose > 0:
                             print('Epoch {:05d}: {} did not improve from {:.5f}'.format(epoch + 1, self.monitor, self.best))
             else:
                 if self.verbose > 0:
                     print('Epoch {:05d}: saving model to {}'.format(epoch + 1, filepath))
-                self._save_model(epoch, filepath)
+                self._save_model(filepath)
     
-    def _save_model(self, epoch, filepath):
+    def _save_model(self, filepath):
         directory = os.path.dirname(filepath)
         if not os.path.exists(directory):
             os.makedirs(directory)
